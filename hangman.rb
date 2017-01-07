@@ -57,7 +57,7 @@ class Play
 
   def incorrect_letters(guess)
     @incorrect_letters_arr << guess
-    @display.turns
+    @display.turns(@incorrect_letters_arr)
   end
 
   def correct_letters(guess)
@@ -91,9 +91,12 @@ class Display
     @display_word
   end
 
-  def turns
+  def turns(arr)
     @turns -= 1
     puts "Wrong."
+    print "Wrong guesses: "
+    arr.each{|letter| print "#{letter} "}
+    puts
     puts "You have #{@turns} wrong guesses left"
   end
 
@@ -110,7 +113,6 @@ class Display
     end
   end
 end
-
 
 class SaveGame
   def save_game secret, display, play
@@ -147,8 +149,7 @@ end
 
 finished = 0
 until finished > 0
-  display_word = play_now.ask_for_letter
-  
+  display_word = play_now.ask_for_letter 
   finished = display_board.winner_loser(display_word)
   if finished == 1
     puts "YOU WIN!"
