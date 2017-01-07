@@ -1,4 +1,7 @@
 require 'json'
+require 'fileutils'
+require 'pry'
+$dir = 'saved_games'
 
 class SecretWord
   attr_accessor :secretword
@@ -53,6 +56,7 @@ class Play
     else
       incorrect_letters(guess)
     end
+
   end
 
   def incorrect_letters(guess)
@@ -94,16 +98,16 @@ class Display
   def turns(arr)
     @turns -= 1
     puts "Wrong."
+    puts @display_word
     print "Wrong guesses: "
     arr.each{|letter| print "#{letter} "}
     puts
-    puts "You have #{@turns} wrong guesses left"
+    puts "You have #{@turns} wrong guesses left."
+    @turns
   end
 
   def winner_loser(display_word)
     # display_word parameter used here rather than @display_word to address bug in which recovered saved-game fails to update @display_word
-    puts @display_word
-    puts display_word
     if display_word == @secret
       return 1
     elsif  @turns == 0
@@ -116,17 +120,27 @@ end
 
 class SaveGame
   def save_game secret, display, play
-    file_arr=[["savedgame_secret.txt", secret],["savedgame_display.txt",display],["savedgame_play.txt",play]]
-    file_arr.each do |item|
-      File.open(item[0],"w+") do |f|
-        f.write(Marshal.dump(item[1]))
-        f.close
+    puts "name your saved game:"
+    name = gets.downcase.chomp
+
+    file_arr=[["#{name}_secret.txt", secret],["#{name}_display.txt",display],["#{name}_play.txt",play]]
+    unless File.directory?($dir)
+      FileUtils::mkdir_p $dir
+    end
+    Dir.chdir($dir) do
+      file_arr.each do |item|
+        File.open(item[0],"w+") do |f|
+          f.write(Marshal.dump(item[1]))
+          f.close
+        end
       end
     end
     exit
   end
 end
 
+
+puts "Do you want to start a new game or continue a saved game?"
 puts "Type 'new' or 'saved':"
 answer = gets.downcase.chomp
 
@@ -136,19 +150,27 @@ if answer == 'new'
   x = SaveGame.new
   play_now = Play.new(secret, display_board, x)
 else
-  file = File.open("savedgame_secret.txt", "r")
-  secret = Marshal.load(file.read)
-  file.close
-  file = File.open("savedgame_display.txt", "r")
-  display_board = Marshal.load(file.read)
-  file.close
-  file = File.open("savedgame_play.txt", "r")
-  play_now = Marshal.load(file.read)
-  file.close
+  Dir.chdir($dir) do
+    puts "which game do you want to recover?"
+    (Dir["*_secret.txt"]).each{|item| puts item.scan(/^[a-z1-9]+/)}
+    filename = gets.downcase.chomp
+    file = File.open("#{filename}_secret.txt", "r")
+    secret = Marshal.load(file.read)
+    file.close
+    file = File.open("#{filename}_display.txt", "r")
+    display_board = Marshal.load(file.read)
+    file.close
+    file = File.open("#{filename}_play.txt", "r")
+    play_now = Marshal.load(file.read)
+    file.close
+    FileUtils.rm (["#{filename}_secret.txt", "#{filename}_display.txt", "#{filename}_play.txt"])
+  end
 end
 
 finished = 0
+
 until finished > 0
+  puts "entered loop"
   display_word = play_now.ask_for_letter 
   finished = display_board.winner_loser(display_word)
   if finished == 1
