@@ -8,8 +8,7 @@ class SecretWord
   attr_reader :secretword
   def initialize
     @secretword = select_word
-    puts @secretword
-    # binding.pry
+    puts "Length of secretword is #{@secretword.length} letters."
   end
 
   def select_word
@@ -22,7 +21,7 @@ class SecretWord
 end
 #*****************************************************
 class Play
-  #1
+  
   def initialize(secret, display_board, x)
     @secret = secret #instance of Secret
     @correct_letters_arr = []
@@ -31,8 +30,9 @@ class Play
     @turn = 6
     @x = x
     @play = self #instance of Play
+    @display_word = ''
   end
-  #2
+  
   def ask_for_letter
     guess = nil
     until (guess =~ /[a-z]/ && guess.length == 1 && fresh_letter?(guess))
@@ -52,11 +52,11 @@ class Play
       end
     end
  
-    display_word = use_letter(guess)
-    return @turn, display_word
+    @display_word = use_letter(guess)
+    return @turn, @display_word
 
   end
-  #3
+  
   def fresh_letter?(guess)
     !@correct_letters_arr.include?(guess) && !@incorrect_letters_arr.include?(guess)
   end
@@ -66,65 +66,47 @@ class Play
       @correct_letters_arr << guess
     else
       @incorrect_letters_arr << guess
-      @turn = @display.turns(@incorrect_letters_arr)
+      decrement_turn
       guess = nil
     end
-    display_word = @display.show_word(guess)
+    @display.show_word(guess, @display_word)
   end
-  # #4
-  # def incorrect_letters(guess)
-   
-  #   @incorrect_letters_arr << guess
-  #   @display.turns(@incorrect_letters_arr)
-  #   @display.show_word(guess)
-  # end
-  # #5
-  # def correct_letters(guess)
-  #   @correct_letters_arr << guess
-  #   display_word = @display.show_word(guess)
-  # end
+
+  def decrement_turn
+    @turn -= 1
+    @display.show_turns(@incorrect_letters_arr, @turn)
+  end
 end
 # *******************************************************
 class Display
-  #1
+
   def initialize (secret)
     @secret = secret.secretword #instance of Secret
-    @display_word = blank_word
-    @turns = 6
   end
-  #2
-  def blank_word
-    starting_word =''
-    for pos in 0..@secret.length - 1
-      starting_word[pos] = '_'
-    end
-    starting_word
-  end
-  #3
-  def show_word(guess)
+
+  def show_word(guess, display_word)
     for pos in 0..@secret.length - 1
       if @secret[pos] == guess
-          @display_word[pos] = guess
+          display_word[pos] = guess
+      elsif display_word[pos] =~ /[a-z]/
+          display_word[pos] = display_word[pos]
+      else
+          display_word[pos] = '_'
       end
     end
-    puts @display_word
-    @display_word
+    puts display_word 
+    display_word
   end
-  #4
-  def turns(arr)
-    @turns -= 1
+
+  def show_turns(arr, turn)
     puts "Wrong."
-    puts @display_word
     print "Wrong guesses: "
     arr.each{|letter| print "#{letter} "}
     puts
-    puts "You have #{@turns} wrong guesses left."
-    @turns
+    puts "You have #{turn} wrong guesses left."
   end
-  #5
+  
   def winner_loser(arr)
-    # display_word parameter used here rather than @display_word to address bug in which recovered saved-game fails to update @display_word
-    # binding.pry
     display_word = arr[1]
     turn = arr[0]
     if display_word == @secret
@@ -134,9 +116,6 @@ class Display
     else
       xxx = 0  
     end
-    puts turn
-    puts display_word
-    puts xxx
     return xxx
   end
 end
@@ -190,9 +169,7 @@ else
 end
 
 finished = 0
-
 until finished > 0
-  puts "entered loop"
   arr = play_now.ask_for_letter 
   finished = display_board.winner_loser(arr)
 
